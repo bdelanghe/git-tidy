@@ -3,22 +3,24 @@ package mcp
 import (
 	"encoding/json"
 	"fmt"
-	"os"
 	"os/exec"
-	"path/filepath"
 	"strings"
 )
 
 // LintProvider provides context from lint errors
 type LintProvider struct {
-	workDir string
+	BaseProvider
 }
 
 // NewLintProvider creates a new lint provider
-func NewLintProvider(workDir string) *LintProvider {
-	return &LintProvider{
-		workDir: workDir,
+func NewLintProvider(workDir string) (*LintProvider, error) {
+	base, err := NewBaseProvider(workDir)
+	if err != nil {
+		return nil, err
 	}
+	return &LintProvider{
+		BaseProvider: base,
+	}, nil
 }
 
 // GetContext implements the ContextProvider interface

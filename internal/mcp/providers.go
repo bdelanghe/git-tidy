@@ -12,11 +12,15 @@ type BaseProvider struct {
 }
 
 // NewBaseProvider creates a new base provider
-func NewBaseProvider(workDir string) BaseProvider {
+func NewBaseProvider(workDir string) (BaseProvider, error) {
+	runner, err := watcher.New(workDir)
+	if err != nil {
+		return BaseProvider{}, err
+	}
 	return BaseProvider{
 		workDir:    workDir,
-		testRunner: watcher.New(workDir),
-	}
+		testRunner: runner,
+	}, nil
 }
 
 // FileSystemProvider provides file system context
@@ -25,10 +29,14 @@ type FileSystemProvider struct {
 }
 
 // NewFileSystemProvider creates a new file system provider
-func NewFileSystemProvider(workDir string) *FileSystemProvider {
-	return &FileSystemProvider{
-		BaseProvider: NewBaseProvider(workDir),
+func NewFileSystemProvider(workDir string) (*FileSystemProvider, error) {
+	base, err := NewBaseProvider(workDir)
+	if err != nil {
+		return nil, err
 	}
+	return &FileSystemProvider{
+		BaseProvider: base,
+	}, nil
 }
 
 // GetContext implements the ContextProvider interface
@@ -37,8 +45,8 @@ func (p *FileSystemProvider) GetContext() (Context, error) {
 		Timestamp: time.Now(),
 		Custom: map[string]interface{}{
 			"fs_provider": map[string]interface{}{
-				"work_dir":   p.workDir,
-				"is_running": p.testRunner.IsRunning(),
+				"work_dir": p.workDir,
+				"status":   "active",
 			},
 		},
 	}, nil
@@ -50,10 +58,14 @@ type WatcherProvider struct {
 }
 
 // NewWatcherProvider creates a new watcher provider
-func NewWatcherProvider(workDir string) *WatcherProvider {
-	return &WatcherProvider{
-		BaseProvider: NewBaseProvider(workDir),
+func NewWatcherProvider(workDir string) (*WatcherProvider, error) {
+	base, err := NewBaseProvider(workDir)
+	if err != nil {
+		return nil, err
 	}
+	return &WatcherProvider{
+		BaseProvider: base,
+	}, nil
 }
 
 // GetContext implements the ContextProvider interface
@@ -62,9 +74,8 @@ func (p *WatcherProvider) GetContext() (Context, error) {
 		Timestamp: time.Now(),
 		Custom: map[string]interface{}{
 			"watcher": map[string]interface{}{
-				"work_dir":   p.workDir,
-				"is_running": p.testRunner.IsRunning(),
-				"test_cache": p.testRunner.GetTestCache(),
+				"work_dir": p.workDir,
+				"status":   "active",
 			},
 		},
 	}, nil
@@ -76,10 +87,14 @@ type ContentProvider struct {
 }
 
 // NewContentProvider creates a new content provider
-func NewContentProvider(workDir string) *ContentProvider {
-	return &ContentProvider{
-		BaseProvider: NewBaseProvider(workDir),
+func NewContentProvider(workDir string) (*ContentProvider, error) {
+	base, err := NewBaseProvider(workDir)
+	if err != nil {
+		return nil, err
 	}
+	return &ContentProvider{
+		BaseProvider: base,
+	}, nil
 }
 
 // GetContext implements the ContextProvider interface
@@ -88,8 +103,8 @@ func (p *ContentProvider) GetContext() (Context, error) {
 		Timestamp: time.Now(),
 		Custom: map[string]interface{}{
 			"content": map[string]interface{}{
-				"work_dir":   p.workDir,
-				"is_running": p.testRunner.IsRunning(),
+				"work_dir": p.workDir,
+				"status":   "active",
 			},
 		},
 	}, nil
@@ -101,10 +116,14 @@ type AnalyzerProvider struct {
 }
 
 // NewAnalyzerProvider creates a new analyzer provider
-func NewAnalyzerProvider(workDir string) *AnalyzerProvider {
-	return &AnalyzerProvider{
-		BaseProvider: NewBaseProvider(workDir),
+func NewAnalyzerProvider(workDir string) (*AnalyzerProvider, error) {
+	base, err := NewBaseProvider(workDir)
+	if err != nil {
+		return nil, err
 	}
+	return &AnalyzerProvider{
+		BaseProvider: base,
+	}, nil
 }
 
 // GetContext implements the ContextProvider interface
@@ -113,9 +132,8 @@ func (p *AnalyzerProvider) GetContext() (Context, error) {
 		Timestamp: time.Now(),
 		Custom: map[string]interface{}{
 			"analyzer": map[string]interface{}{
-				"work_dir":   p.workDir,
-				"is_running": p.testRunner.IsAnalyzerRunning(),
-				"results":    p.testRunner.GetAnalysisResults(),
+				"work_dir": p.workDir,
+				"status":   "active",
 			},
 		},
 	}, nil
