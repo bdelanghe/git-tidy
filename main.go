@@ -2,84 +2,80 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
-	"os/exec"
-	"strings"
+	"os"
+	"path/filepath"
+
+	"github.com/bdelanghe/git-tidy/git"
 )
 
-// PRData holds the PR's merge commit data
-type PRData struct {
-	MergeCommit struct {
-		Oid string `json:"oid"`
-	} `json:"mergeCommit"`
-}
-
-func listBranches() ([]string, error) {
-	output, err := exec.Command("git", "branch", "--format=%(refname:short)").Output()
-	if err != nil {
-		return nil, err
-	}
-	var branches []string
-	for _, line := range strings.Split(string(output), "\n") {
-		branch := strings.TrimSpace(line)
-		if branch != "" {
-			branches = append(branches, branch)
-		}
-	}
-	return branches, nil
-}
-
-func getLocalCommit(branch string) (string, error) {
-	output, err := exec.Command("git", "rev-parse", branch).Output()
-	if err != nil {
-		return "", err
-	}
-	return strings.TrimSpace(string(output)), nil
-}
-
-func getPRMergeCommit(branch string) (string, error) {
-	output, err := exec.Command("gh", "pr", "view", "--head", branch, "--json", "mergeCommit").Output()
-	if err != nil {
-		return "", err
-	}
-	var prData PRData
-	if err := json.Unmarshal(output, &prData); err != nil {
-		return "", err
-	}
-	return strings.TrimSpace(prData.MergeCommit.Oid), nil
-}
-
-func compareCommits(branch, local, merged string) {
-	if merged == local {
-		fmt.Printf("Branch '%s' matches its merged PR commit: %s\n", branch, merged)
-	} else {
-		fmt.Printf("Branch '%s' has a merged PR, but the commits differ.\n", branch)
-		fmt.Printf("  Local Commit: %s\n", local)
-		fmt.Printf("  Merged Commit: %s\n", merged)
-	}
-}
-
 func main() {
-	branches, err := listBranches()
+	// Get the current working directory
+	workDir, err := os.Getwd()
+	if err != nil {
+		fmt.Printf("Error getting working directory: %v\n", err)
+		os.Exit(1)
+	}
+
+	// Create a new Git executor
+	g := git.New(workDir)
+
+	// Check if we're in a Git repository
+	if !g.IsGitRepository() {
+		fmt.Println("Error: Not a Git repository")
+		os.Exit(1)
+	}
+
+	// Get repository root
+	repoRoot, err := g.GetRepositoryRoot()
+	if err != nil {
+		fmt.Printf("Error getting repository root: %v\n", err)
+		os.Exit(1)
+	}
+
+	// Create a new executor with the repository root
+	g = git.New(repoRoot)
+
+	// Get all branches
+	branches, err := g.ListBranches()
 	if err != nil {
 		fmt.Printf("Error listing branches: %v\n", err)
-		return
+		os.Exit(1)
 	}
 
+	// Check each branch
 	for _, branch := range branches {
-		localCommit, err := getLocalCommit(branch)
+		// Skip the current branch
+		currentBranch, err := g.GetCurrentBranch()
+		if err != nil {
+			fmt.Printf("Error getting current branch: %v\n", err)
+			continue
+		}
+		if branch == currentBranch {
+			continue
+		}
+
+		// Get the local commit
+		localCommit, err := g.GetBranchCommit(branch)
 		if err != nil {
 			fmt.Printf("Error getting local commit for branch '%s': %v\n", branch, err)
 			continue
 		}
 
-		mergeCommit, err := getPRMergeCommit(branch)
+		// Get the PR merge commit
+		mergeCommit, err := g.GetPRMergeCommit(branch)
 		if err != nil {
 			fmt.Printf("No merged PR found for branch '%s'\n", branch)
 			continue
 		}
 
-		compareCommits(branch, localCommit, mergeCommit)
+		// Compare the commits
+		if mergeCommit == localCommit {
+			fmt.Printf("Branch '%s' matches its merged PR commit: %s\n", branch, mergeCommit)
+		} else {
+			fmt.Printf("Branch '%s' has a merged PR, but the commits differ.\n", branch)
+			fmt.Printf("  Local Commit: %s\n", localCommit)
+			fmt.Printf("  Merged Commit: %s\n", mergeCommit)
+		}
 	}
 }
