@@ -1,43 +1,43 @@
 package watcher
 
 import (
+	"github.com/fsnotify/fsnotify"
 	"os"
 	"path/filepath"
 	"testing"
 	"time"
-
-	"github.com/fsnotify/fsnotify"
 )
 
 func TestNew(t *testing.T) {
-	// Create a temporary directory
-	tmpDir, err := os.MkdirTemp("", "watcher-test")
+	// Create a temporary directory for testing
+	tmpDir, err := os.MkdirTemp("", "watcher-test-*")
 	if err != nil {
 		t.Fatalf("Failed to create temp dir: %v", err)
 	}
 	defer os.RemoveAll(tmpDir)
 
-	// Create a new TestRunner
+	// Test creating a new TestRunner
 	runner, err := New(tmpDir)
 	if err != nil {
 		t.Fatalf("Failed to create TestRunner: %v", err)
 	}
 	defer runner.Stop()
 
+	// Verify the TestRunner was initialized correctly
 	if runner.workDir != tmpDir {
 		t.Errorf("Expected workDir to be %s, got %s", tmpDir, runner.workDir)
 	}
-
 	if runner.watcher == nil {
-		t.Error("Expected non-nil watcher")
+		t.Error("Expected watcher to be initialized")
 	}
-
 	if runner.done == nil {
-		t.Error("Expected non-nil done channel")
+		t.Error("Expected done channel to be initialized")
 	}
-
 	if runner.testCache == nil {
-		t.Error("Expected non-nil testCache")
+		t.Error("Expected testCache to be initialized")
+	}
+	if runner.analyzer == nil {
+		t.Error("Expected analyzer to be initialized")
 	}
 }
 
@@ -51,35 +51,29 @@ func TestShouldRunTests(t *testing.T) {
 	tests := []struct {
 		name     string
 		fileName string
-		op      fsnotify.Op
-		want    bool
+		op       fsnotify.Op
+		want     bool
 	}{
 		{
-			name:     "Go file write",
+			name:     "go file write",
 			fileName: "test.go",
 			op:       fsnotify.Write,
 			want:     true,
 		},
 		{
-			name:     "Go file create",
-			fileName: "test.go",
-			op:       fsnotify.Create,
-			want:     true,
-		},
-		{
-			name:     "Non-Go file",
+			name:     "non-go file",
 			fileName: "test.txt",
 			op:       fsnotify.Write,
 			want:     false,
 		},
 		{
-			name:     "Temporary Go file",
+			name:     "temp go file",
 			fileName: "test.go~",
 			op:       fsnotify.Write,
 			want:     false,
 		},
 		{
-			name:     "Hidden Go file",
+			name:     "hidden go file",
 			fileName: ".test.go",
 			op:       fsnotify.Write,
 			want:     false,

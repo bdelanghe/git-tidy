@@ -10,9 +10,10 @@ import (
 	"time"
 
 	"github.com/fsnotify/fsnotify"
+	"git-tidy/internal/analyzer"
 )
 
-// TestRunner handles continuous test execution
+// TestRunner handles continuous test execution and code analysis
 type TestRunner struct {
 	watcher    *fsnotify.Watcher
 	done       chan bool
@@ -21,6 +22,8 @@ type TestRunner struct {
 	testCache  map[string]time.Time
 	onSuccess  func()
 	onFailure  func(error)
+	onAnalysis func(*analyzer.AnalysisResult)
+	analyzer   *analyzer.Analyzer
 }
 
 // New creates a new TestRunner
@@ -35,6 +38,7 @@ func New(workDir string) (*TestRunner, error) {
 		done:      make(chan bool),
 		workDir:   workDir,
 		testCache: make(map[string]time.Time),
+		analyzer:  analyzer.New(),
 	}, nil
 }
 
@@ -93,6 +97,7 @@ func (tr *TestRunner) watch() {
 				go func() {
 					<-tr.debouncer.C
 					tr.runTests(event.Name)
+					tr.runAnalyzer()
 				}()
 			}
 
@@ -152,6 +157,23 @@ func (tr *TestRunner) runTests(changedFile string) {
 	}
 }
 
+// runAnalyzer executes the code analyzer
+func (tr *TestRunner) runAnalyzer() {
+	result, err := tr.analyzer.AnalyzeDirectory(tr.workDir)
+	if err != nil {
+		log.Printf("Analysis failed: %v", err)
+		return
+	}
+
+	// Check SOLID principles
+	tr.analyzer.CheckSOLIDPrinciples(result)
+
+	// Call the analysis callback if set
+	if tr.onAnalysis != nil {
+		tr.onAnalysis(result)
+	}
+}
+
 // OnSuccess sets the callback for successful test runs
 func (tr *TestRunner) OnSuccess(callback func()) {
 	tr.onSuccess = callback
@@ -160,6 +182,11 @@ func (tr *TestRunner) OnSuccess(callback func()) {
 // OnFailure sets the callback for failed test runs
 func (tr *TestRunner) OnFailure(callback func(error)) {
 	tr.onFailure = callback
+}
+
+// OnAnalysis sets the callback for analysis results
+func (tr *TestRunner) OnAnalysis(callback func(*analyzer.AnalysisResult)) {
+	tr.onAnalysis = callback
 }
 
 // Stop terminates the test runner
