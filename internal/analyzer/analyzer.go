@@ -4,6 +4,7 @@ import (
 	"go/ast"
 	"go/parser"
 	"go/token"
+	"os"
 	"path/filepath"
 	"strings"
 )
@@ -163,31 +164,27 @@ func (a *Analyzer) CheckSOLIDPrinciples(result *AnalysisResult) {
 
 	// Open/Closed Principle
 	for pkgName, metrics := range result.PackageMetrics {
-		for _, iface := range metrics.Interfaces {
-			if len(metrics.Structs) == 0 {
-				result.Violations = append(result.Violations, Violation{
-					Type:     "OCP",
-					File:     pkgName,
-					Message:  "Interface without implementing structs might violate Open/Closed Principle",
-					Severity: "warning",
-					Rule:     "open-closed",
-				})
-			}
+		if len(metrics.Interfaces) > 0 && len(metrics.Structs) == 0 {
+			result.Violations = append(result.Violations, Violation{
+				Type:     "OCP",
+				File:     pkgName,
+				Message:  "Interface without implementing structs might violate Open/Closed Principle",
+				Severity: "warning",
+				Rule:     "open-closed",
+			})
 		}
 	}
 
 	// Interface Segregation Principle
 	for pkgName, metrics := range result.PackageMetrics {
-		for _, iface := range metrics.Interfaces {
-			if len(metrics.Methods) > 10 {
-				result.Violations = append(result.Violations, Violation{
-					Type:     "ISP",
-					File:     pkgName,
-					Message:  "Interface with too many methods might violate Interface Segregation Principle",
-					Severity: "warning",
-					Rule:     "interface-segregation",
-				})
-			}
+		if len(metrics.Methods) > 10 {
+			result.Violations = append(result.Violations, Violation{
+				Type:     "ISP",
+				File:     pkgName,
+				Message:  "Interface with too many methods might violate Interface Segregation Principle",
+				Severity: "warning",
+				Rule:     "interface-segregation",
+			})
 		}
 	}
 
