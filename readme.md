@@ -1,6 +1,6 @@
-# Clean Desk
+# git-tidy
 
-A tool to check if your Git branches are fully integrated with their corresponding merged pull requests.
+A Git extension to check if your branches are fully integrated with their corresponding merged pull requests.
 
 ## Purpose
 
@@ -14,16 +14,25 @@ This tool helps you identify branches that have been merged via pull requests bu
 
 ## Installation
 
-1. Clone this repository
-2. Run `go mod tidy` to download dependencies
-3. Build the project: `go build`
+1. Clone this repository:
+   ```bash
+   git clone https://github.com/yourusername/git-tidy.git
+   cd git-tidy
+   ```
+
+2. Build and install:
+   ```bash
+   go install
+   ```
+
+This will install the binary as `git-tidy`, making it available as a Git subcommand.
 
 ## Usage
 
-Simply run the compiled binary:
+Once installed, you can use it as a Git subcommand:
 
 ```bash
-./clean-desk
+git tidy
 ```
 
 The tool will:

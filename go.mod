@@ -1,3 +1,3 @@
-module clean-desk
+module git-tidy
 
-go 1.23.2
+go 1.16
