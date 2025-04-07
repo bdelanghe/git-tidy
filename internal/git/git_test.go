@@ -2,7 +2,9 @@ package git
 
 import (
 	"os"
+	"os/exec"
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -62,9 +64,13 @@ func TestGetRepositoryRoot(t *testing.T) {
 		t.Fatalf("Failed to get repository root: %v", err)
 	}
 
-	// The root should be the same as tmpDir
-	if root != tmpDir {
-		t.Errorf("Expected repository root to be %s, got %s", tmpDir, root)
+	// On macOS, the temporary directory might be under /private
+	// Strip the /private prefix for comparison
+	expectedRoot := strings.TrimPrefix(tmpDir, "/private")
+	actualRoot := strings.TrimPrefix(root, "/private")
+
+	if actualRoot != expectedRoot {
+		t.Errorf("Expected repository root to be %s, got %s", expectedRoot, actualRoot)
 	}
 }
 
@@ -97,6 +103,12 @@ func TestListBranches(t *testing.T) {
 
 	cmd = exec.Command("git", "commit", "-m", "Initial commit")
 	cmd.Dir = tmpDir
+	cmd.Env = append(os.Environ(),
+		"GIT_AUTHOR_NAME=test",
+		"GIT_AUTHOR_EMAIL=test@example.com",
+		"GIT_COMMITTER_NAME=test",
+		"GIT_COMMITTER_EMAIL=test@example.com",
+	)
 	if err := cmd.Run(); err != nil {
 		t.Fatalf("Failed to commit test file: %v", err)
 	}
