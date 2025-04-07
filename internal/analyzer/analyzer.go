@@ -20,6 +20,7 @@ type AnalysisResult struct {
 	TestFileCount   int
 	PackageMetrics  map[string]PackageMetrics
 	Violations      []Violation
+	Improvements    []Improvement
 }
 
 // PackageMetrics contains metrics for a specific package
@@ -44,6 +45,16 @@ type Violation struct {
 	Message     string
 	Severity    string
 	Rule        string
+}
+
+// Improvement represents a suggested improvement for the codebase
+type Improvement struct {
+	Type        string
+	File        string
+	Message     string
+	Priority    string
+	Category    string
+	HowToFix    string
 }
 
 // Analyzer is the main analyzer type
@@ -197,6 +208,98 @@ func (a *Analyzer) CheckSOLIDPrinciples(result *AnalysisResult) {
 				Message:  "Package with too many imports might violate Dependency Inversion Principle",
 				Severity: "warning",
 				Rule:     "dependency-inversion",
+			})
+		}
+	}
+	
+	// Generate improvement suggestions based on violations
+	a.GenerateImprovements(result)
+}
+
+// GenerateImprovements generates improvement suggestions based on the analysis results
+func (a *Analyzer) GenerateImprovements(result *AnalysisResult) {
+	// Generate improvements based on violations
+	for _, violation := range result.Violations {
+		var improvement Improvement
+		
+		switch violation.Type {
+		case "SRP":
+			improvement = Improvement{
+				Type:     "SRP",
+				File:     violation.File,
+				Message:  "Consider splitting the package into smaller, more focused packages",
+				Priority: "high",
+				Category: "Architecture",
+				HowToFix: "Identify related structs and group them into separate packages with clear responsibilities",
+			}
+		case "OCP":
+			improvement = Improvement{
+				Type:     "OCP",
+				File:     violation.File,
+				Message:  "Consider implementing the interfaces with concrete structs",
+				Priority: "medium",
+				Category: "Design",
+				HowToFix: "Create concrete structs that implement the interfaces to follow the Open/Closed Principle",
+			}
+		case "ISP":
+			improvement = Improvement{
+				Type:     "ISP",
+				File:     violation.File,
+				Message:  "Consider splitting large interfaces into smaller, more focused ones",
+				Priority: "high",
+				Category: "Design",
+				HowToFix: "Group related methods into separate interfaces to allow clients to depend only on the methods they need",
+			}
+		case "DIP":
+			improvement = Improvement{
+				Type:     "DIP",
+				File:     violation.File,
+				Message:  "Consider reducing dependencies by using interfaces and dependency injection",
+				Priority: "medium",
+				Category: "Architecture",
+				HowToFix: "Create interfaces for external dependencies and use dependency injection to reduce direct dependencies",
+			}
+		}
+		
+		result.Improvements = append(result.Improvements, improvement)
+	}
+	
+	// Generate additional improvements based on metrics
+	for pkgName, metrics := range result.PackageMetrics {
+		// Check for test coverage
+		if len(metrics.TestFiles) == 0 {
+			result.Improvements = append(result.Improvements, Improvement{
+				Type:     "TestCoverage",
+				File:     pkgName,
+				Message:  "Package has no test files",
+				Priority: "high",
+				Category: "Testing",
+				HowToFix: "Create test files for the package to ensure code quality and maintainability",
+			})
+		}
+		
+		// Check for documentation
+		if len(metrics.Files) > 0 {
+			// This is a simplified check - in a real implementation, you would analyze the actual documentation
+			result.Improvements = append(result.Improvements, Improvement{
+				Type:     "Documentation",
+				File:     pkgName,
+				Message:  "Consider adding more documentation to the package",
+				Priority: "medium",
+				Category: "Documentation",
+				HowToFix: "Add godoc comments to exported types, functions, and methods",
+			})
+		}
+		
+		// Check for complexity
+		if metrics.Complexity > 10 {
+			result.Improvements = append(result.Improvements, Improvement{
+				Type:     "Complexity",
+				File:     pkgName,
+				Message:  "Package has high complexity",
+				Priority: "medium",
+				Category: "Code Quality",
+				HowToFix: "Refactor complex functions into smaller, more manageable ones",
 			})
 		}
 	}

@@ -127,4 +127,111 @@ func TestCheckSOLIDPrinciples(t *testing.T) {
 			t.Errorf("Expected violation of type %s not found", expectedType)
 		}
 	}
+	
+	// Verify improvements
+	if len(result.Improvements) == 0 {
+		t.Error("Expected improvements to be generated, but none were found")
+	}
+	
+	// Check for specific improvements
+	improvementTypes := make(map[string]bool)
+	for _, imp := range result.Improvements {
+		improvementTypes[imp.Type] = true
+	}
+	
+	// We should have at least the same number of improvements as violations
+	if len(result.Improvements) < len(result.Violations) {
+		t.Errorf("Expected at least %d improvements, got %d", len(result.Violations), len(result.Improvements))
+	}
+	
+	// Check that each violation has a corresponding improvement
+	for _, v := range result.Violations {
+		found := false
+		for _, imp := range result.Improvements {
+			if imp.Type == v.Type && imp.File == v.File {
+				found = true
+				break
+			}
+		}
+		if !found {
+			t.Errorf("No improvement found for violation of type %s in %s", v.Type, v.File)
+		}
+	}
+}
+
+func TestGenerateImprovements(t *testing.T) {
+	// Create a test result with violations
+	result := &AnalysisResult{
+		PackageMetrics: map[string]PackageMetrics{
+			"test": {
+				Structs:    make([]string, 6),   // SRP violation
+				Methods:    make([]string, 11),  // ISP violation
+				Imports:    make([]string, 11),  // DIP violation
+				Interfaces: []string{"TestInterface"},
+				Files:      []string{"test.go"},
+				TestFiles:  []string{}, // No test files
+			},
+		},
+		Violations: []Violation{
+			{
+				Type:     "SRP",
+				File:     "test",
+				Message:  "Package has too many structs",
+				Severity: "warning",
+				Rule:     "single-responsibility",
+			},
+			{
+				Type:     "ISP",
+				File:     "test",
+				Message:  "Interface with too many methods",
+				Severity: "warning",
+				Rule:     "interface-segregation",
+			},
+		},
+	}
+	
+	// Generate improvements
+	a := New()
+	a.GenerateImprovements(result)
+	
+	// Verify improvements
+	if len(result.Improvements) == 0 {
+		t.Error("Expected improvements to be generated, but none were found")
+	}
+	
+	// Check for specific improvements
+	improvementTypes := make(map[string]bool)
+	for _, imp := range result.Improvements {
+		improvementTypes[imp.Type] = true
+	}
+	
+	// We should have improvements for each violation plus additional ones
+	expectedTypes := []string{"SRP", "ISP", "TestCoverage", "Documentation"}
+	for _, expectedType := range expectedTypes {
+		if !improvementTypes[expectedType] {
+			t.Errorf("Expected improvement of type %s not found", expectedType)
+		}
+	}
+	
+	// Check that each improvement has the required fields
+	for _, imp := range result.Improvements {
+		if imp.Type == "" {
+			t.Error("Improvement has empty Type")
+		}
+		if imp.File == "" {
+			t.Error("Improvement has empty File")
+		}
+		if imp.Message == "" {
+			t.Error("Improvement has empty Message")
+		}
+		if imp.Priority == "" {
+			t.Error("Improvement has empty Priority")
+		}
+		if imp.Category == "" {
+			t.Error("Improvement has empty Category")
+		}
+		if imp.HowToFix == "" {
+			t.Error("Improvement has empty HowToFix")
+		}
+	}
 } 
