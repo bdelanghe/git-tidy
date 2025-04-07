@@ -1,3 +1,4 @@
+// Package main provides the git-tidy command
 package main
 
 import (
