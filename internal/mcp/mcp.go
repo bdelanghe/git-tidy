@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 	"time"
+	"git-tidy/internal/watcher"
 )
 
 // ContextProvider defines the interface for providing context to Cursor
@@ -131,4 +132,79 @@ func (s *Server) UpdateContext() error {
 	}
 
 	return nil
+}
+
+// WatcherContextFileWatcherFileContentWatcherFileContentProvider provides context from the watcher's context file watcher file content watcher file content integration
+type WatcherContextFileWatcherFileContentWatcherFileContentProvider struct {
+	workDir string
+	testRunner *watcher.TestRunner
+}
+
+// NewWatcherContextFileWatcherFileContentWatcherFileContentProvider creates a new watcher context file watcher file content watcher file content provider
+func NewWatcherContextFileWatcherFileContentWatcherFileContentProvider(workDir string) *WatcherContextFileWatcherFileContentWatcherFileContentProvider {
+	return &WatcherContextFileWatcherFileContentWatcherFileContentProvider{
+		workDir: workDir,
+		testRunner: watcher.New(workDir),
+	}
+}
+
+// GetContext implements the ContextProvider interface
+func (p *WatcherContextFileWatcherFileContentWatcherFileContentProvider) GetContext() (Context, error) {
+	// Create context
+	context := Context{
+		Custom: make(map[string]interface{}),
+	}
+
+	// Add custom fields
+	context.Custom["watcher_context_file_watcher_file_content_watcher_file_content_work_dir"] = p.workDir
+	context.Custom["watcher_context_file_watcher_file_content_watcher_file_content_timestamp"] = time.Now()
+
+	// Add context file watcher file content watcher file content information
+	context.Custom["context_file_watcher_file_content_watcher_file_content"] = map[string]interface{}{
+		"is_running": p.testRunner.IsContextFileWatcherFileContentWatcherFileContentRunning(),
+		"work_dir": p.testRunner.GetWorkDir(),
+	}
+
+	// Add context file watcher file content watcher file content results
+	context.Custom["context_file_watcher_file_content_watcher_file_content_results"] = p.testRunner.GetContextFileWatcherFileContentWatcherFileContentResults()
+
+	return context, nil
+}
+
+// MCPServer represents the Model Context Protocol server
+type MCPServer struct {
+	server *Server
+}
+
+// NewMCPServer creates a new MCP server
+func NewMCPServer(workDir string) *MCPServer {
+	server := NewServer(".cursor/context.json")
+
+	// Add providers
+	server.AddProvider(NewFileSystemProvider(workDir))
+	server.AddProvider(NewWatcherProvider(workDir))
+	server.AddProvider(NewContentProvider(workDir))
+	server.AddProvider(NewAnalyzerProvider(workDir))
+
+	return &MCPServer{
+		server: server,
+	}
+}
+
+// Start starts the MCP server
+func (s *MCPServer) Start() error {
+	fmt.Printf("Starting MCP server with output path: %s\n", s.server.outputPath)
+	fmt.Printf("Updating context every 5 seconds\n")
+
+	ticker := time.NewTicker(5 * time.Second)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-ticker.C:
+			if err := s.server.UpdateContext(); err != nil {
+				return fmt.Errorf("error updating context: %v", err)
+			}
+		}
+	}
 } 
