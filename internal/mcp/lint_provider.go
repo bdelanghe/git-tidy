@@ -47,7 +47,7 @@ func (p *LintProvider) GetContext() (Context, error) {
 	}
 
 	// Add the issues to the context
-	context.LintErrors = issues
+	context.Lint = issues
 
 	// Add a custom field with the total number of issues
 	context.Custom["lint_issues_count"] = len(issues)
