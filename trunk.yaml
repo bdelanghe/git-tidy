@@ -1,0 +1,15 @@
+version: 1.0.0
+
+lint:
+  enabled:
+    - golangci-lint
+  rules:
+    golangci-lint:
+      level: warning
+
+format:
+  enabled:
+    - gofmt
+  rules:
+    gofmt:
+      level: error 
